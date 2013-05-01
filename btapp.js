@@ -22,9 +22,9 @@
     // some of us are lost in the world without __asm int 3;
     // lets give ourselves an easy way to blow the world up if we're not happy about something
     function assert(b, err) { if(!b) { debugger; throw err; } }
-    
+
     var MAX_POLL_FREQUENCY = 3000;
-    var MIN_POLL_FREQUENCY = 0;
+    var MIN_POLL_FREQUENCY = 500;
     var POLL_FREQUENCY_BACKOFF_INCREMENT = 100;
 
     var isEmptyObject = function(obj) {
@@ -68,7 +68,7 @@
             if(v === 'get' || v === 'set' || v === 'unset' || v === 'length') {
                 return;
             }
-                 
+
             assert(v in this, 'trying to remove the function "' + v + '", which does not exist in the prototype of this object');
             this.trigger('remove:' + v);
             delete this[v];
@@ -176,7 +176,7 @@
                 return this.updateAddAttributeState(session, this.client.getStoredFunction(added), removed, path, v);
             } else {
                 return this.updateAddAttributeState(session, added, removed, childpath, v);
-            }   
+            }
         },
         updateAddState: function(session, add, remove, path) {
             var ret = {};
@@ -313,8 +313,8 @@
             this.initializeValues();
             var clone = _.clone(this.attributes);
             delete clone['id'];
-            _.each(clone, function(attribute) { 
-                attribute && attribute.clearState && attribute.clearState(); 
+            _.each(clone, function(attribute) {
+                attribute && attribute.clearState && attribute.clearState();
             });
             Backbone.Model.prototype.set.call(this, clone, {internal: true, unset: true});
             this.destructor();
@@ -363,7 +363,7 @@
         set: function(key, value, options) {
             var evaluate = function(value, key) {
                 if(options && 'internal' in options) return;
-                if(_.isUndefined(this.get(key))) return;  
+                if(_.isUndefined(this.get(key))) return;
                 // We're trying to guide users towards using save
                 throw 'please use save to set attributes directly to the client';
             };
@@ -468,19 +468,19 @@
             // While we don't want app writers having to interact with the client directly,
             // it would be nice to be able to listen in on what's going on...so let em bubble up
             this.client.bind('all', this.trigger, this);
-            this.client.bind('client:connected', this.fetch);       
+            this.client.bind('client:connected', this.fetch);
         },
         setEvents: function(events) {
             // For each client event, just set it to trigger an javascript side event
             // using the same name. This way you can just bind to the base btapp objects
-            // instead of understanding the slightly unconventional save mechanics. 
+            // instead of understanding the slightly unconventional save mechanics.
             _.each(events.toJSON(), function(value, key) {
                 if(key !== 'id') {
                     var tmp = {};
                     tmp[key] = _.bind(this.trigger, this, key);
                     events.save(tmp);
                 }
-            }, this);       
+            }, this);
         },
         disconnect: function() {
             this.trigger('disconnect', 'manual');
@@ -527,7 +527,7 @@
                 this.last_query.abort();
                 this.last_query = null;
             }
-            
+
             if(this.client) {
                 _.delay(_.bind(this.client.reset, this.client), 500);
             }
@@ -540,7 +540,7 @@
         fetch: function() {
             if(this.client) {
                 this.last_query = this.client.query({
-                    type: 'state', 
+                    type: 'state',
                     queries: JSON.stringify(this.queries)
                 }).done(this.onFetch).fail(this.onConnectionError);
             }
@@ -568,7 +568,7 @@
                 this.trigger('sync', data);
                 //do a little bit of backoff if these requests are empty
                 if(data.length == 0) {
-                    this.poll_frequency = Math.min(MAX_POLL_FREQUENCY, 
+                    this.poll_frequency = Math.min(MAX_POLL_FREQUENCY,
                         this.poll_frequency + POLL_FREQUENCY_BACKOFF_INCREMENT);
                 } else {
                     this.poll_frequency = MIN_POLL_FREQUENCY;
@@ -576,6 +576,7 @@
                 for(var i = 0; i < data.length; i++) {
                     this.onEvent(session, data[i]);
                 }
+                clearTimeout(this.next_timeout);
                 this.next_timeout = setTimeout(_.bind(this.waitForEvents, this, session), this.poll_frequency);
             }
         },
@@ -594,15 +595,15 @@
         ALL: [['btapp']],
         DHT: [['btapp','dht']],
         TORRENTS_BASIC: [
-            ['btapp','create'], 
+            ['btapp','create'],
             ['btapp','add','torrent'],
-            ['btapp','torrent','all','*','file','all','*'], 
+            ['btapp','torrent','all','*','file','all','*'],
             ['btapp','torrent','all','*','properties','all','*']
         ],
         EVENTS: [['btapp','events']],
         SETTINGS: [['btapp','settings']],
         REMOTE: [
-            ['btapp','connect_remote'], 
+            ['btapp','connect_remote'],
             ['btapp','settings','all','webui.uconnect_enable']
         ]
     };
@@ -642,7 +643,7 @@
             PRIORITY: {
                 NO_DOWNLOAD: 0,
                 LOW: 5,
-                MEDIUM: 10, 
+                MEDIUM: 10,
                 HIGH: 15
             }
         },
